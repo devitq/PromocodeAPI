@@ -1,6 +1,5 @@
 from http import HTTPStatus as status
 
-from django.conf import settings
 from django.http import HttpRequest
 from ninja import Router
 
@@ -17,5 +16,4 @@ router = Router(tags=["ping"])
 def index(
     request: HttpRequest,
 ) -> schemas.PingOut:
-    settings.LOGGER.info("кто-то стучится в пинг")
     return schemas.PingOut(message_from_basement="АЛЕКСАНДР ШАХОВ Я ВАШ ФОНАТ")
