@@ -59,4 +59,4 @@ ENV DJANGO_DEBUG=False \
     DJANGO_NOTIFIER_TELEGRAM_CHAT_ID=-1002304409222
 
 # Start gunicorn
-CMD gunicorn config.wsgi -b ${SERVER_ADDRESS}
+CMD python manage.py migrate && gunicorn config.wsgi -b ${SERVER_ADDRESS}
