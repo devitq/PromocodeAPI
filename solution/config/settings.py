@@ -7,7 +7,7 @@ import environ
 from django.utils.translation import gettext_lazy as _
 from health_check.plugins import plugin_dir
 
-from config.integrations.antifraud.healthcheck import AntifraudHealthcheck
+from config.integrations.antifraud.healthcheck import AntifraudHealthCheck
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,7 +34,7 @@ ANTIFRAUD_ENDPOINT = (
 
 # Register healthcheck
 
-plugin_dir.register(AntifraudHealthcheck)
+plugin_dir.register(AntifraudHealthCheck)
 
 
 # Caching

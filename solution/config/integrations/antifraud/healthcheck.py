@@ -5,7 +5,7 @@ from django.conf import settings
 from health_check.backends import BaseHealthCheckBackend
 
 
-class AntifraudHealthcheck(BaseHealthCheckBackend):
+class AntifraudHealthCheck(BaseHealthCheckBackend):
     critical_service = False
 
     def check_status(self) -> None:
@@ -20,4 +20,4 @@ class AntifraudHealthcheck(BaseHealthCheckBackend):
         return self.__class__.__name__
 
 
-__all__ = ["AntifraudHealthcheck"]
+__all__ = ["AntifraudHealthCheck"]
