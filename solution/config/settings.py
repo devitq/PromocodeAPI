@@ -5,6 +5,9 @@ from pathlib import Path
 
 import environ
 from django.utils.translation import gettext_lazy as _
+from health_check.plugins import plugin_dir
+
+from config.integrations.antifraud.healthcheck import AntifraudHealthcheck
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,7 +28,13 @@ ALLOWED_HOSTS = env(
 
 # Integrations
 
-ANTIFRAUD_ADDRESS = env("ANTIFRAUD_ADDRESS", default="localhost:9090")
+ANTIFRAUD_ENDPOINT = (
+    f"http://{env('ANTIFRAUD_ADDRESS', default='http://localhost:9090')}"
+)
+
+# Register healthcheck
+
+plugin_dir.register(AntifraudHealthcheck)
 
 
 # Caching
