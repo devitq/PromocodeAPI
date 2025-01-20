@@ -16,4 +16,4 @@ router = Router(tags=["ping"])
 def index(
     request: HttpRequest,
 ) -> schemas.PingOut:
-    return schemas.PingOut(message_from_basement="АЛЕКСАНДР ШАХОВ Я ВАШ ФAНАТ")
+    return schemas.PingOut(message_from_basement="АЛЕКСАНДР ШАХОВ Я ВАШ ФAНАТ")  # noqa: RUF001
