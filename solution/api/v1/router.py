@@ -3,6 +3,7 @@ from functools import partial
 from ninja import NinjaAPI
 
 from api.v1 import handlers
+from api.v1.business.views import router as business_router
 from api.v1.ping.views import router as ping_router
 
 router = NinjaAPI(
@@ -19,6 +20,10 @@ router = NinjaAPI(
 router.add_router(
     "ping",
     ping_router,
+)
+router.add_router(
+    "business",
+    business_router,
 )
 
 

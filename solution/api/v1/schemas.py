@@ -9,3 +9,19 @@ class UnauthorizedError(Schema):
 
 class NotFoundError(Schema):
     detail: str = status.NOT_FOUND.phrase
+
+
+class ValidationError(Schema):
+    detail: str
+
+
+class UniqueConstraintError(Schema):
+    detail: str
+
+
+__all__ = [
+    "NotFoundError",
+    "UnauthorizedError",
+    "UniqueConstraintError",
+    "ValidationError",
+]

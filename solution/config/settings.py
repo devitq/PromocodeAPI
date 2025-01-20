@@ -414,8 +414,11 @@ INSTALLED_APPS = [
     "django_guid",
     "ninja",
     # Internal apps
+    "apps.core",
+    "apps.business",
     # API v1 apps
     "api.v1.ping",
+    "api.v1.business",
 ]
 
 # GUID
