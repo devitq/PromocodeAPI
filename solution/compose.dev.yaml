@@ -1,0 +1,40 @@
+name: promocode
+
+services:
+  app:
+    build: .
+    ports:
+      - 8080:8080
+    environment:
+      - DJANGO_DEBUG=False
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - POSTGRES_CONN=postgres://postgres:postgres@postgres:5432/postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ANTIFRAUD_ADDRESS=antifraud:9090
+    depends_on:
+      - postgres
+      - redis
+      - antifraud
+
+  postgres:
+    image: postgres:16.6-alpine3.21
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    shm_size: 128mb
+
+  redis:
+    image: redis:7.4-alpine3.21
+
+  antifraud:
+    image: docker.io/lodthe/prod-backend-antifraud:latest
+    environment:
+      - SERVER_PORT=9090
+      - CACHE_DURATION_MS=5000
+
+volumes:
+  postgres_data:
