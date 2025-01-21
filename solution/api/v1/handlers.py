@@ -46,7 +46,9 @@ def handle_django_validation_error(
 
 
 def handle_authentication_error(
-    request: HttpRequest, exc: errors.AuthenticationError, router: NinjaAPI
+    request: HttpRequest,
+    exc: errors.AuthenticationError,
+    router: NinjaAPI,
 ) -> HttpResponse:
     return router.create_response(
         request,
@@ -56,7 +58,9 @@ def handle_authentication_error(
 
 
 def handle_validation_error(
-    request: HttpRequest, exc: errors.ValidationError, router: NinjaAPI
+    request: HttpRequest,
+    exc: errors.ValidationError,
+    router: NinjaAPI,
 ) -> HttpResponse:
     return router.create_response(
         request,
@@ -66,7 +70,9 @@ def handle_validation_error(
 
 
 def handle_not_found_error(
-    request: HttpRequest, exc: Exception, router: NinjaAPI
+    request: HttpRequest,
+    exc: Exception,
+    router: NinjaAPI,
 ) -> HttpResponse:
     return router.create_response(
         request,
@@ -76,7 +82,9 @@ def handle_not_found_error(
 
 
 def handle_unknown_exception(
-    request: HttpRequest, exc: Exception, router: NinjaAPI
+    request: HttpRequest,
+    exc: Exception,
+    router: NinjaAPI,
 ) -> HttpResponse:
     logger.exception(exc)
 

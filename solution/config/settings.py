@@ -52,7 +52,7 @@ CACHES = {
         "LOCATION": REDIS_URI,
         "TIMEOUT": None,
         "KEY_PREFIX": "django",
-    }
+    },
 }
 
 
@@ -72,22 +72,22 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": (
             "django.contrib.auth."
             "password_validation.UserAttributeSimilarityValidator"
-        )
+        ),
     },
     {
         "NAME": (
             "django.contrib.auth.password_validation.MinimumLengthValidator"
-        )
+        ),
     },
     {
         "NAME": (
             "django.contrib.auth.password_validation.CommonPasswordValidator"
-        )
+        ),
     },
     {
         "NAME": (
             "django.contrib.auth.password_validation.NumericPasswordValidator"
-        )
+        ),
     },
 ]
 
@@ -244,15 +244,18 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Telegram
 
 NOTIFIER_TELEGRAM_BOT_TOKEN = env(
-    "DJANGO_NOTIFIER_TELEGRAM_BOT_TOKEN", default=None
+    "DJANGO_NOTIFIER_TELEGRAM_BOT_TOKEN",
+    default=None,
 )
 
 NOTIFIER_TELEGRAM_CHAT_ID = env(
-    "DJANGO_NOTIFIER_TELEGRAM_CHAT_ID", default=None
+    "DJANGO_NOTIFIER_TELEGRAM_CHAT_ID",
+    default=None,
 )
 
 NOTIFIER_TELEGRAM_THREAD_ID = env(
-    "DJANGO_NOTIFIER_TELEGRAM_THREAD_ID", default=None
+    "DJANGO_NOTIFIER_TELEGRAM_THREAD_ID",
+    default=None,
 )
 
 
@@ -416,6 +419,8 @@ INSTALLED_APPS = [
     # Internal apps
     "apps.core",
     "apps.business",
+    "apps.user",
+    "apps.promo",
     # API v1 apps
     "api.v1.ping",
     "api.v1.business",
@@ -531,7 +536,7 @@ TEMPLATES = [
             "string_if_invalid": "",
             "file_charset": "utf-8",
         },
-    }
+    },
 ]
 
 

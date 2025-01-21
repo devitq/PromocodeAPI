@@ -4,7 +4,8 @@ from django.http import HttpRequest, JsonResponse
 
 
 def handler400(
-    request: HttpRequest, exception: Exception | None = None
+    request: HttpRequest,
+    exception: Exception | None = None,
 ) -> JsonResponse:
     return JsonResponse(
         status=status.BAD_REQUEST,
@@ -13,7 +14,8 @@ def handler400(
 
 
 def handler403(
-    request: HttpRequest, exception: Exception | None = None
+    request: HttpRequest,
+    exception: Exception | None = None,
 ) -> JsonResponse:
     return JsonResponse(
         status=status.FORBIDDEN,
@@ -22,7 +24,8 @@ def handler403(
 
 
 def handler404(
-    request: HttpRequest, exception: Exception | None = None
+    request: HttpRequest,
+    exception: Exception | None = None,
 ) -> JsonResponse:
     return JsonResponse(
         status=status.NOT_FOUND,
@@ -31,7 +34,8 @@ def handler404(
 
 
 def handler500(
-    request: HttpRequest, exception: Exception | None = None
+    request: HttpRequest,
+    exception: Exception | None = None,
 ) -> JsonResponse:
     return JsonResponse(
         status=status.INTERNAL_SERVER_ERROR,

@@ -1,20 +1,20 @@
-import re
+import datetime
 import uuid
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from ninja import ModelSchema, Schema
-from pydantic import EmailStr, field_validator
+from pydantic import Field
 
 from apps.business.models import Business
+from apps.promo.models import Promocode, PromocodeTarget
 
 
 class BusinessSignUpIn(ModelSchema):
-    email: EmailStr
-
     class Meta:
         model = Business
         fields: ClassVar[list[str]] = [
             Business.name.field.name,
+            Business.email.field.name,
             Business.password.field.name,
         ]
 
@@ -24,25 +24,83 @@ class BusinessSignUpOut(Schema):
     company_id: uuid.UUID
 
 
-class BusinessSignInIn(Schema):
-    email: EmailStr
-    password: str
-
-    @field_validator("password")
-    def validate_password(cls, value: str) -> str:  # noqa: N805
-        pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,60}$"  # noqa: E501
-        if not re.match(pattern, value):
-            e = (
-                "Password must contain at least 8 characters, one uppercase "
-                "letter, one lowercase letter, one number, and one special "
-                "character (@$!%*?&)."
-            )
-            raise ValueError(e)
-        return value
+class BusinessSignInIn(ModelSchema):
+    class Meta:
+        model = Business
+        fields: ClassVar[list[str]] = [
+            Business.email.field.name,
+            Business.password.field.name,
+        ]
 
 
 class BusinessSignInOut(Schema):
     token: str
+
+
+class PromocodeTarget(ModelSchema):
+    categories: list[str] | None = None
+
+    class Meta:
+        model = PromocodeTarget
+        fields: ClassVar[list[str]] = [
+            PromocodeTarget.age_from.field.name,
+            PromocodeTarget.age_until.field.name,
+            PromocodeTarget.country.field.name,
+            PromocodeTarget.categories.field.name,
+        ]
+
+
+class CreatePromocodeIn(ModelSchema):
+    target: PromocodeTarget
+    promo_unique: list[str] | None = None
+
+    class Meta:
+        model = Promocode
+        fields: ClassVar[list[str]] = [
+            Promocode.description.field.name,
+            Promocode.image_url.field.name,
+            Promocode.max_count.field.name,
+            Promocode.active_from.field.name,
+            Promocode.active_until.field.name,
+            Promocode.mode.field.name,
+            Promocode.promo_common.field.name,
+        ]
+
+
+class CreatePromocodeOut(Schema):
+    id: uuid.UUID
+
+
+class PromocodeListFilters(Schema):
+    limit: int = 10
+    offset: int = 0
+    query: Literal["active_from", "active_until", None] = None
+    country__in: list[str] = Field(None, alias="country")
+
+
+class PromocodeTargetViewOut(Schema):
+    age_from: int | None
+    age_until: int | None
+    country: str | None
+    categories: list[str] | None
+
+
+class PromocodeViewOut(Schema):
+    promo_id: uuid.UUID
+    company_id: uuid.UUID
+    description: str
+    image_url: str | None
+    target: PromocodeTargetViewOut
+    max_count: int
+    active_from: datetime.date | None
+    active_until: datetime.date | None
+    mode: str
+    promo_common: str | None
+    promo_unique: list[str] | None
+    company_name: str
+    like_count: int
+    used_count: int
+    active: bool
 
 
 __all__ = [

@@ -69,7 +69,9 @@ class LoggingHandler(logging.Handler):
 
         for attempt in range(1, self.retries + 1):
             response = httpx.post(
-                self.api_url, data=payload, timeout=self.timeout
+                self.api_url,
+                data=payload,
+                timeout=self.timeout,
             )
             if response.status_code != httpx.codes.OK:
                 if attempt == self.retries:
@@ -86,7 +88,8 @@ class LoggingHandler(logging.Handler):
     def format(self, record: logging.LogRecord) -> str:
         try:
             asctime = datetime.datetime.fromtimestamp(
-                record.created, tz=get_current_timezone()
+                record.created,
+                tz=get_current_timezone(),
             ).strftime("%Y-%m-%d %H:%M:%S %Z")
             level_emoji = LEVEL_EMOJIS.get(record.levelname, "")
 
@@ -111,7 +114,8 @@ class LoggingHandler(logging.Handler):
                 formatted_message += f" #{record.correlation_id}"
         except Exception as format_error:  # noqa: BLE001
             TELEGRAM_LOG_HANDLER.exception(
-                "Error formatting log record: %s", format_error
+                "Error formatting log record: %s",
+                format_error,
             )
             return f"Error formatting log record: {format_error}"
         else:

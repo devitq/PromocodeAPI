@@ -2,20 +2,32 @@ from datetime import timedelta
 
 import jwt
 from django.conf import settings
-from django.core.validators import MinLengthValidator, RegexValidator
+from django.core.validators import (
+    MaxValueValidator,
+    MinLengthValidator,
+    RegexValidator,
+)
 from django.db import models
 from django.utils import timezone
+from django_countries.fields import CountryField
 
 from apps.core.models import BaseModel
 
 
-class Business(BaseModel):
-    name = models.CharField(max_length=50, validators=[MinLengthValidator(5)])
+class User(BaseModel):
+    name = models.CharField(max_length=100, validators=[MinLengthValidator(1)])
+    surname = models.CharField(
+        max_length=120,
+        validators=[MinLengthValidator(1)],
+    )
     email = models.EmailField(
         unique=True,
         max_length=120,
         validators=[MinLengthValidator(8)],
     )
+    avatar_url = models.URLField(max_length=350, blank=True, null=True)
+    age = models.PositiveSmallIntegerField(validators=[MaxValueValidator(100)])
+    country = CountryField(max_length=2)
     password = models.CharField(
         max_length=60,
         validators=[
@@ -27,12 +39,12 @@ class Business(BaseModel):
     token_version = models.BigIntegerField(default=0)
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.surname} {self.name}"
 
     def generate_token(self) -> str:
         return jwt.encode(
             {
-                "business_id": str(self.id),
+                "user_id": str(self.id),
                 "token_version": self.token_version,
                 "exp": timezone.now() + timedelta(hours=24),
             },

@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -12,12 +13,35 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
-        self.full_clean(validate_unique=False)
-
-        try:
-            self.validate_unique()
-        except ValidationError as e:
-            raise UniqueConstraintError(e) from None
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.validate()
 
         super().save(*args, **kwargs)
+
+    def validate(
+        self,
+        validate_unique: bool = True,
+        validate_constraints: bool = True,
+        include: list[models.Field] | None = None,
+    ) -> None:
+        self.full_clean(
+            validate_unique=False,
+            validate_constraints=False,
+            exclude=(
+                field.name
+                for field in set(self._meta.get_fields()) - set(include)
+            )
+            if include
+            else None,
+        )
+        if validate_unique:
+            try:
+                self.validate_unique()
+            except ValidationError as e:
+                raise UniqueConstraintError(e) from None
+
+        if validate_constraints:
+            try:
+                self.validate_constraints()
+            except ValidationError as e:
+                raise UniqueConstraintError(e) from None
