@@ -6,6 +6,7 @@ requires-python = ">=3.10,<3.12"
 dependencies = [
  "colorlog>=6.9.0",
  "django-cors-headers>=4.6.0",
+ "django-countries>=7.6.1",
  "django-environ>=0.11.2",
  "django-extensions>=3.2.3",
  "django-guid>=3.5.0",
@@ -100,7 +101,16 @@ extend-select = []
 extend-unsafe-fixes = []
 external = []
 fixable = ["ALL"]
-ignore = ["ARG", "COM812", "D", "ISC001", "PT009" ,"N813"]
+ignore = [
+    "ARG",
+    "COM812",
+    "D",
+    "N813",
+    "DJ001",
+    "ANN401",
+    "FBT001",
+    "FBT002",
+]
 logger-objects = []
 per-file-ignores = {}
 preview = false
