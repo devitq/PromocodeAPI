@@ -47,7 +47,6 @@ class PromocodeTarget(ModelSchema):
         fields: ClassVar[list[str]] = [
             PromocodeTarget.age_from.field.name,
             PromocodeTarget.age_until.field.name,
-            PromocodeTarget.categories.field.name,
         ]
 
 

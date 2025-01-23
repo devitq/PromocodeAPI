@@ -2,7 +2,6 @@ import datetime
 from collections import Counter
 from http import HTTPStatus as status
 
-from django.core.exceptions import ValidationError
 from django.db.models import Count, Q, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse
@@ -51,7 +50,7 @@ def signin(
     request: HttpRequest,
     login_data: schemas.BusinessSignInIn,
 ) -> tuple[int, schemas.BusinessSignInOut]:
-    business_obj = Business(**dict(login_data))
+    business_obj = Business(**login_data.dict())
     business_obj.validate(
         include=[Business.email.field, Business.password.field],
         validate_unique=False,
@@ -86,24 +85,44 @@ def signin(
 def create_promocode(
     request: HttpRequest,
     promocode: schemas.CreatePromocodeIn,
-) -> schemas.CreatePromocodeOut:
+) -> tuple[int, schemas.CreatePromocodeOut]:
     business = request.auth
+
     promocode = dict(promocode)
     target = dict(promocode.pop("target"))
 
     target_obj = PromocodeTarget(**target, country_raw=target["country"])
+    target_obj.validate(
+        include=[
+            PromocodeTarget.age_from,
+            PromocodeTarget.age_until,
+            PromocodeTarget.country,
+            PromocodeTarget.categories,
+        ],
+        validate_constraints=False,
+        validate_unique=False,
+    )
+
+    promocode_obj = Promocode(business=business, **promocode)
+    promocode_obj.validate(
+        include=[
+            Promocode.description,
+            Promocode.image_url,
+            Promocode.max_count,
+            Promocode.active_from,
+            Promocode.active_until,
+            Promocode.mode,
+            Promocode.promo_common,
+            Promocode.promo_unique,
+        ],
+        validate_constraints=False,
+        validate_unique=False,
+    )
+
     target_obj.save()
 
-    promocode_obj = Promocode(
-        business=business,
-        target=target_obj,
-        **promocode,
-    )
-    try:
-        promocode_obj.save()
-    except ValidationError as e:
-        target_obj.delete()
-        raise e  # noqa: TRY201
+    promocode_obj.target = target_obj
+    promocode_obj.save()
 
     return status.CREATED, schemas.CreatePromocodeOut(id=promocode_obj.id)
 
@@ -121,11 +140,11 @@ def list_promocode(
     request: HttpRequest,
     filters: Query[schemas.PromocodeListFilters],
     response: HttpResponse,
-) -> list[schemas.PromocodeViewOut]:
+) -> tuple[int, list[schemas.PromocodeViewOut]]:
     business = request.auth
 
-    promocodes = Promocode.objects.filter(business=business).select_related(
-        "target", "business"
+    promocodes = Promocode.objects.select_related("target", "business").filter(
+        business=business
     )
 
     if filters.country__in:
@@ -150,7 +169,7 @@ def list_promocode(
     else:
         promocodes = promocodes.order_by("-created_at")
 
-    promocodes = promocodes.annotate(
+    promocodes = promocodes.prefetch_related("activations", "likes").annotate(
         used_count=Count("activations"),
         like_count=Count("likes"),
     )
@@ -176,22 +195,28 @@ def get_promocode(
 ) -> schemas.PromocodeViewOut:
     business = request.auth
 
-    promocodes = Promocode.objects.filter(id=promocode_id).select_related(
-        "target", "business"
-    )
+    promocodes = Promocode.objects.filter(id=promocode_id)
 
     if not promocodes.exists():
         raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
 
-    promocodes = promocodes.annotate(
-        used_count=Count("activations"),
-        like_count=Count("likes"),
+    promocodes = promocodes.select_related("business").filter(
+        business=business
+    )
+
+    if not promocodes.exists():
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    promocodes = (
+        promocodes.select_related("target")
+        .prefetch_related("activations", "likes")
+        .annotate(
+            used_count=Count("activations"),
+            like_count=Count("likes"),
+        )
     )
 
     promocode = promocodes.first()
-
-    if promocode.business != business:
-        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
 
     return utils.map_promocode_to_schema(promocode)
 
@@ -212,22 +237,28 @@ def patch_promocode(
 ) -> schemas.PromocodeViewOut:
     business = request.auth
 
-    promocodes = Promocode.objects.filter(id=promocode_id).select_related(
-        "target", "business"
-    )
+    promocodes = Promocode.objects.filter(id=promocode_id)
 
     if not promocodes.exists():
         raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
 
-    promocodes = promocodes.annotate(
-        used_count=Count("activations"),
-        like_count=Count("likes"),
+    promocodes = promocodes.select_related("business").filter(
+        business=business
+    )
+
+    if not promocodes.exists():
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    promocodes = (
+        promocodes.select_related("target")
+        .prefetch_related("activations", "likes")
+        .annotate(
+            used_count=Count("activations"),
+            like_count=Count("likes"),
+        )
     )
 
     promocode = promocodes.first()
-
-    if promocode.business != business:
-        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
 
     patch_data = patched_fields.dict(exclude_unset=True)
     target_data = patch_data.pop("target", None)
@@ -261,18 +292,23 @@ def promocode_stat(
 ) -> schemas.PromocodeStats:
     business = request.auth
 
-    promocodes = Promocode.objects.filter(id=promocode_id).prefetch_related(
-        "activations",
-    )
+    promocodes = Promocode.objects.filter(id=promocode_id)
 
     if not promocodes.exists():
         raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
 
-    promocodes.prefetch_related("activations__user")
-    promocode = promocodes.first()
+    promocodes = promocodes.select_related("business").filter(
+        business=business
+    )
 
-    if promocode.business != business:
+    if not promocodes.exists():
         raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    promocodes = promocodes.prefetch_related(
+        "activations", "activations__user"
+    )
+
+    promocode = promocodes.first()
 
     activations = promocode.activations.all()
     activations_count = activations.count()
@@ -293,6 +329,6 @@ def promocode_stat(
             )
             for country, count in sorted_countries
         ]
-        if country_activations.items()
+        if sorted_countries
         else None,
     )
