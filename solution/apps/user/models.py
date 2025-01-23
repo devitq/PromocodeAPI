@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import jwt
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     MaxValueValidator,
     MinLengthValidator,
@@ -28,6 +29,7 @@ class User(BaseModel):
     avatar_url = models.URLField(max_length=350, blank=True, null=True)
     age = models.PositiveSmallIntegerField(validators=[MaxValueValidator(100)])
     country = CountryField(max_length=2)
+    country_raw = models.CharField(max_length=2)
     password = models.CharField(
         max_length=60,
         validators=[
@@ -40,6 +42,15 @@ class User(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.surname} {self.name}"
+
+    def clean(self) -> None:
+        super().clean()
+
+        if self.avatar_url == "":
+            err = {
+                "avatar_url": "Field cannot be blank.",
+            }
+            raise ValidationError(err)
 
     def generate_token(self) -> str:
         return jwt.encode(

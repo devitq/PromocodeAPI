@@ -18,6 +18,3 @@ class AntifraudHealthCheck(BaseHealthCheckBackend):
 
     def identifier(self) -> str:
         return self.__class__.__name__
-
-
-__all__ = ["AntifraudHealthCheck"]

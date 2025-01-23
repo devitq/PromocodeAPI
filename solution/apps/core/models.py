@@ -34,6 +34,7 @@ class BaseModel(models.Model):
             if include
             else None,
         )
+
         if validate_unique:
             try:
                 self.validate_unique()

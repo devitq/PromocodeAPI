@@ -31,6 +31,7 @@ class PromocodeTarget(BaseModel):
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )
     country = CountryField(blank=True, null=True)
+    country_raw = models.CharField(max_length=2, blank=True, null=True)
     categories = models.JSONField(
         blank=True,
         null=True,
@@ -61,7 +62,11 @@ class Promocode(BaseModel):
         max_length=300,
         validators=[MinLengthValidator(10)],
     )
-    image_url = models.URLField(max_length=350, blank=True, null=True)
+    image_url = models.URLField(
+        max_length=350,
+        blank=True,
+        null=True,
+    )
     target = models.ForeignKey(
         PromocodeTarget,
         on_delete=models.CASCADE,
@@ -89,12 +94,20 @@ class Promocode(BaseModel):
         blank=True,
         null=True,
         default=list,
-        editable=False,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self) -> str:
+        return str(self.id)
+
     def clean(self) -> None:
         super().clean()
+
+        if self.image_url == "":
+            err = {
+                "image_url": "Field cannot be blank.",
+            }
+            raise ValidationError(err)
 
         if self.mode == self.ModeChoices.COMMON:
             if not self.promo_common:
@@ -107,6 +120,11 @@ class Promocode(BaseModel):
                     "promo_unique": "Field must be empty for COMMON mode.",
                 }
                 raise ValidationError(err)
+            if self.max_count < self.activations.count():
+                err = {
+                    "max_count": "Activations count is bigger than max_count",
+                }
+                raise ValidationError(err)
         elif self.mode == self.ModeChoices.UNIQUE:
             if not self.promo_unique:
                 err = {
@@ -116,6 +134,11 @@ class Promocode(BaseModel):
             if self.promo_common:
                 err = {
                     "promo_common": "Field must be empty for UNIQUE mode.",
+                }
+                raise ValidationError(err)
+            if self.max_count != 1:
+                err = {
+                    "max_count": "Field must be 1 for UNIQUE mode.",
                 }
                 raise ValidationError(err)
 
@@ -134,6 +157,8 @@ class Promocode(BaseModel):
         elif self.mode == self.ModeChoices.UNIQUE:
             is_active_by_mode = len(self.promo_unique) > len(
                 self.promo_unique_activated
+                if self.promo_unique_activated
+                else []
             )
 
         return is_active_by_date and is_active_by_mode
@@ -152,6 +177,9 @@ class PromocodeActivation(BaseModel):
     )
     timestamp = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self) -> str:
+        return f"{self.promocode.id} | {self.user.id}"
+
 
 class PromocodeComment(BaseModel):
     promocode = models.ForeignKey(
@@ -169,3 +197,15 @@ class PromocodeComment(BaseModel):
         validators=[MinLengthValidator(10)],
     )
     date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"{self.promocode.id} | {self.author.id}"
+
+
+class PromocodeLike(BaseModel):
+    promocode = models.ForeignKey(
+        Promocode, on_delete=models.CASCADE, related_name="likes"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="liked_promocodes"
+    )

@@ -1,4 +1,5 @@
 import datetime
+from collections import Counter
 from http import HTTPStatus as status
 
 from django.core.exceptions import ValidationError
@@ -10,7 +11,7 @@ from ninja.errors import AuthenticationError, HttpError
 
 from api.v1 import schemas as global_schemas
 from api.v1.auth import BusinessAuth
-from api.v1.business import schemas
+from api.v1.business import schemas, utils
 from apps.business.models import Business
 from apps.promo.models import Promocode, PromocodeTarget
 
@@ -90,7 +91,7 @@ def create_promocode(
     promocode = dict(promocode)
     target = dict(promocode.pop("target"))
 
-    target_obj = PromocodeTarget(**target)
+    target_obj = PromocodeTarget(**target, country_raw=target["country"])
     target_obj.save()
 
     promocode_obj = Promocode(
@@ -123,7 +124,9 @@ def list_promocode(
 ) -> list[schemas.PromocodeViewOut]:
     business = request.auth
 
-    promocodes = Promocode.objects.filter(business=business)
+    promocodes = Promocode.objects.filter(business=business).select_related(
+        "target", "business"
+    )
 
     if filters.country__in:
         promocodes = promocodes.filter(
@@ -131,52 +134,31 @@ def list_promocode(
             | Q(target__country__isnull=True)
         )
 
-    if filters.query == "active_from":
+    response["X-Total-Count"] = promocodes.count()
+
+    min_datetime = datetime.date(datetime.MINYEAR, 1, 1)
+    max_datetime = datetime.date(datetime.MAXYEAR, 1, 1)
+
+    if filters.sort_by == "active_from":
         promocodes = promocodes.annotate(
-            active_from_sort=Coalesce("active_from", Value(datetime.min))
+            active_from_sort=Coalesce("active_from", Value(min_datetime))
         ).order_by("-active_from_sort")
-    elif filters.query == "active_until":
+    elif filters.sort_by == "active_until":
         promocodes = promocodes.annotate(
-            active_until_sort=Coalesce("active_until", Value(datetime.max))
+            active_until_sort=Coalesce("active_until", Value(max_datetime))
         ).order_by("-active_until_sort")
     else:
         promocodes = promocodes.order_by("-created_at")
 
     promocodes = promocodes.annotate(
         used_count=Count("activations"),
-        like_count=Count("comments"),
+        like_count=Count("likes"),
     )
-
-    response["X-Total-Count"] = promocodes.count()
 
     promocodes = promocodes[filters.offset : filters.offset + filters.limit]
 
     return [
-        schemas.PromocodeViewOut(
-            promo_id=promocode.id,
-            company_id=promocode.business.id,
-            company_name=promocode.business.name,
-            description=promocode.description,
-            image_url=promocode.image_url,
-            target=schemas.PromocodeTargetViewOut(
-                age_from=promocode.target.age_from,
-                age_until=promocode.target.age_until,
-                country=promocode.target.country.code
-                if promocode.target.country
-                else None,
-                categories=promocode.target.categories,
-            ),
-            max_count=promocode.max_count,
-            active_from=promocode.active_from,
-            active_until=promocode.active_until,
-            mode=promocode.mode,
-            promo_common=promocode.promo_common,
-            promo_unique=promocode.promo_unique,
-            like_count=promocode.like_count,
-            used_count=promocode.used_count,
-            active=promocode.active,
-        )
-        for promocode in promocodes
+        utils.map_promocode_to_schema(promocode) for promocode in promocodes
     ]
 
 
@@ -189,47 +171,128 @@ def list_promocode(
     },
     exclude_none=True,
 )
-def product_get(
+def get_promocode(
     request: HttpRequest, promocode_id: str
 ) -> schemas.PromocodeViewOut:
     business = request.auth
 
-    promocodes = Promocode.objects.filter(id=promocode_id)
+    promocodes = Promocode.objects.filter(id=promocode_id).select_related(
+        "target", "business"
+    )
 
-    if len(promocodes) == 0:
+    if not promocodes.exists():
         raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
 
     promocodes = promocodes.annotate(
         used_count=Count("activations"),
-        like_count=Count("comments"),
+        like_count=Count("likes"),
     )
 
-    promocode = promocodes[0]
+    promocode = promocodes.first()
 
     if promocode.business != business:
         raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
 
-    return schemas.PromocodeViewOut(
-        promo_id=promocode.id,
-        company_id=promocode.business.id,
-        company_name=promocode.business.name,
-        description=promocode.description,
-        image_url=promocode.image_url,
-        target=schemas.PromocodeTargetViewOut(
-            age_from=promocode.target.age_from,
-            age_until=promocode.target.age_until,
-            country=promocode.target.country.code
-            if promocode.target.country
-            else None,
-            categories=promocode.target.categories,
-        ),
-        max_count=promocode.max_count,
-        active_from=promocode.active_from,
-        active_until=promocode.active_until,
-        mode=promocode.mode,
-        promo_common=promocode.promo_common,
-        promo_unique=promocode.promo_unique,
-        like_count=promocode.like_count,
-        used_count=promocode.used_count,
-        active=promocode.active,
+    return utils.map_promocode_to_schema(promocode)
+
+
+@router.patch(
+    "/promo/{promocode_id}",
+    auth=BusinessAuth(),
+    response={
+        status.OK: schemas.PromocodeViewOut,
+        status.NOT_FOUND: global_schemas.NotFoundError,
+    },
+    exclude_none=True,
+)
+def patch_promocode(
+    request: HttpRequest,
+    promocode_id: str,
+    patched_fields: schemas.PatchPromocodeIn,
+) -> schemas.PromocodeViewOut:
+    business = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id).select_related(
+        "target", "business"
+    )
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    promocodes = promocodes.annotate(
+        used_count=Count("activations"),
+        like_count=Count("likes"),
+    )
+
+    promocode = promocodes.first()
+
+    if promocode.business != business:
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    patch_data = patched_fields.dict(exclude_unset=True)
+    target_data = patch_data.pop("target", None)
+
+    for field, value in patch_data.items():
+        setattr(promocode, field, value)
+
+    if target_data:
+        for field, value in target_data.items():
+            setattr(promocode.target, field, value)
+        if "country" in target_data:
+            promocode.target.country_raw = target_data["country"]
+        promocode.target.save()
+
+    promocode.save()
+
+    return utils.map_promocode_to_schema(promocode)
+
+
+@router.get(
+    "/promo/{promocode_id}/stat",
+    auth=BusinessAuth(),
+    response={
+        status.OK: schemas.PromocodeStats,
+        status.NOT_FOUND: global_schemas.NotFoundError,
+    },
+    exclude_none=True,
+)
+def promocode_stat(
+    request: HttpRequest, promocode_id: str
+) -> schemas.PromocodeStats:
+    business = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id).prefetch_related(
+        "activations",
+    )
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    promocodes.prefetch_related("activations__user")
+    promocode = promocodes.first()
+
+    if promocode.business != business:
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    activations = promocode.activations.all()
+    activations_count = activations.count()
+
+    country_activations = Counter(
+        activation.user.country.code
+        for activation in activations
+        if activation.user.country
+    )
+
+    sorted_countries = sorted(country_activations.items(), key=lambda x: x[0])
+
+    return status.OK, schemas.PromocodeStats(
+        activations_count=activations_count,
+        countries=[
+            schemas.PromocodeStatsForCountry(
+                country=country, activations_count=count
+            )
+            for country, count in sorted_countries
+        ]
+        if country_activations.items()
+        else None,
     )

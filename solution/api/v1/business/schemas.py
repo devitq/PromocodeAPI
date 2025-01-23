@@ -4,6 +4,7 @@ from typing import ClassVar, Literal
 
 from ninja import ModelSchema, Schema
 from pydantic import Field
+from pydantic_extra_types.country import CountryAlpha2
 
 from apps.business.models import Business
 from apps.promo.models import Promocode, PromocodeTarget
@@ -39,13 +40,13 @@ class BusinessSignInOut(Schema):
 
 class PromocodeTarget(ModelSchema):
     categories: list[str] | None = None
+    country: str | None = None
 
     class Meta:
         model = PromocodeTarget
         fields: ClassVar[list[str]] = [
             PromocodeTarget.age_from.field.name,
             PromocodeTarget.age_until.field.name,
-            PromocodeTarget.country.field.name,
             PromocodeTarget.categories.field.name,
         ]
 
@@ -72,10 +73,12 @@ class CreatePromocodeOut(Schema):
 
 
 class PromocodeListFilters(Schema):
-    limit: int = 10
-    offset: int = 0
-    query: Literal["active_from", "active_until", None] = None
-    country__in: list[str] = Field(None, alias="country")
+    limit: int = Field(10, gt=0, description="Limit must be greater than 0")
+    offset: int = Field(
+        0, ge=0, description="Offset must be greater than or equal to 0"
+    )
+    sort_by: Literal["active_from", "active_until", None] = None
+    country__in: list[CountryAlpha2] = Field(None, alias="country")
 
 
 class PromocodeTargetViewOut(Schema):
@@ -103,9 +106,20 @@ class PromocodeViewOut(Schema):
     active: bool
 
 
-__all__ = [
-    "BusinessSignInIn",
-    "BusinessSignInOut",
-    "BusinessSignUpIn",
-    "BusinessSignUpOut",
-]
+class PatchPromocodeIn(Schema):
+    description: str | None = None
+    image_url: str | None = None
+    target: PromocodeTarget | None = None
+    max_count: int | None = None
+    active_from: datetime.date | None = None
+    active_until: datetime.date | None = None
+
+
+class PromocodeStatsForCountry(Schema):
+    country: str
+    activations_count: int
+
+
+class PromocodeStats(Schema):
+    activations_count: int
+    countries: list[PromocodeStatsForCountry] | None = None

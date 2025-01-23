@@ -17,11 +17,3 @@ class ValidationError(Schema):
 
 class UniqueConstraintError(Schema):
     detail: str
-
-
-__all__ = [
-    "NotFoundError",
-    "UnauthorizedError",
-    "UniqueConstraintError",
-    "ValidationError",
-]

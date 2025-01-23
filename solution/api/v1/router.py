@@ -5,6 +5,7 @@ from ninja import NinjaAPI
 from api.v1 import handlers
 from api.v1.business.views import router as business_router
 from api.v1.ping.views import router as ping_router
+from api.v1.user.views import router as user_router
 
 router = NinjaAPI(
     title="Promocode API",
@@ -24,6 +25,10 @@ router.add_router(
 router.add_router(
     "business",
     business_router,
+)
+router.add_router(
+    "user",
+    user_router,
 )
 
 

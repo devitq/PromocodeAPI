@@ -61,7 +61,7 @@ class PromocodeUniqueValidator(BaseValidator):
 
     def __call__(self, promocodes: list) -> None:
         if not isinstance(promocodes, list):
-            err = "unque promocodes must be a list"
+            err = "unique promocodes must be a list"
             raise ValidationError(err)
 
         if not (
