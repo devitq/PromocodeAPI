@@ -1,15 +1,17 @@
+import contextlib
 from http import HTTPStatus as status
 
 from django.db.models import Count, Exists, OuterRef, Q
 from django.http import HttpRequest, HttpResponse
 from ninja import Query, Router
-from ninja.errors import AuthenticationError
+from ninja.errors import AuthenticationError, HttpError
 
 from api.v1 import schemas as global_schemas
 from api.v1.auth import UserAuth
 from api.v1.user import schemas, utils
 from apps.promo.models import Promocode, PromocodeActivation, PromocodeLike
 from apps.user.models import User
+from config.errors import UniqueConstraintError
 
 router = Router(tags=["user"])
 
@@ -81,10 +83,10 @@ def signin(
     },
     exclude_none=True,
 )
-def get_profile(request: HttpRequest) -> schemas.ViewUserOut:
+def get_profile(request: HttpRequest) -> tuple[int, schemas.ViewUserOut]:
     user = request.auth
 
-    return utils.map_user_to_schema(user)
+    return status.OK, utils.map_user_to_schema(user)
 
 
 @router.patch(
@@ -98,7 +100,7 @@ def get_profile(request: HttpRequest) -> schemas.ViewUserOut:
 )
 def patch_profile(
     request: HttpRequest, patched_fields: schemas.PatchUserIn
-) -> schemas.ViewUserOut:
+) -> tuple[int, schemas.ViewUserOut]:
     user = request.auth
 
     patch_data = patched_fields.dict(exclude_unset=True)
@@ -107,7 +109,7 @@ def patch_profile(
 
     user.save()
 
-    return utils.map_user_to_schema(user)
+    return status.OK, utils.map_user_to_schema(user)
 
 
 @router.get(
@@ -123,10 +125,10 @@ def feed(
     request: HttpRequest,
     filters: Query[schemas.PromocodeFeedFilters],
     response: HttpResponse,
-) -> list[schemas.PromocodeViewOut]:
+) -> tuple[status.OK, list[schemas.PromocodeViewOut]]:
     user: User = request.auth
 
-    promocodes = Promocode.objects
+    promocodes = Promocode.objects.select_related("target")
 
     promocodes = promocodes.filter(
         Q(
@@ -138,7 +140,7 @@ def feed(
         )
     )
 
-    promocodes = promocodes.annotate(
+    promocodes = promocodes.prefetch_related("likes", "comments").annotate(
         like_count=Count("likes"),
         comment_count=Count("comments"),
         is_liked_by_user=Exists(
@@ -166,6 +168,101 @@ def feed(
 
     promocodes = promocodes[filters.offset : filters.offset + filters.limit]
 
-    return [
+    return status.OK, [
         utils.map_promocode_to_schema(promocode) for promocode in promocodes
     ]
+
+
+@router.get(
+    "/promo/{promocode_id}",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.PromocodeViewOut,
+        status.BAD_REQUEST: global_schemas.ValidationError,
+    },
+    exclude_none=True,
+)
+def get_promocode(
+    request: HttpRequest, promocode_id: str
+) -> tuple[status.OK, schemas.PromocodeViewOut]:
+    user: User = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id)
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    promocodes = (
+        promocodes.select_related("business")
+        .prefetch_related("likes", "comments")
+        .annotate(
+            like_count=Count("likes"),
+            comment_count=Count("comments"),
+            is_liked_by_user=Exists(
+                PromocodeLike.objects.filter(
+                    promocode=OuterRef("pk"), user=user
+                )
+            ),
+            is_activated_by_user=Exists(
+                PromocodeActivation.objects.filter(
+                    promocode=OuterRef("pk"), user=user
+                )
+            ),
+        )
+    )
+
+    promocode = promocodes.first()
+
+    return status.OK, utils.map_promocode_to_schema(promocode)
+
+
+@router.post(
+    "/promo/{promocode_id}/like",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.PromocodeLikeOut,
+        status.BAD_REQUEST: global_schemas.ValidationError,
+    },
+    exclude_none=True,
+)
+def add_like(
+    request: HttpRequest, promocode_id: str
+) -> tuple[status.OK, schemas.PromocodeViewOut]:
+    user: User = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id)
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    with contextlib.suppress(UniqueConstraintError):
+        PromocodeLike.objects.create(promocode=promocodes.first(), user=user)
+
+    return status.OK, schemas.PromocodeLikeOut()
+
+
+@router.delete(
+    "/promo/{promocode_id}/like",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.PromocodeRemoveLikeOut,
+        status.BAD_REQUEST: global_schemas.ValidationError,
+    },
+    exclude_none=True,
+)
+def delete_like(
+    request: HttpRequest, promocode_id: str
+) -> tuple[status.OK, schemas.PromocodeViewOut]:
+    user: User = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id)
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    with contextlib.suppress(PromocodeLike.DoesNotExist):
+        PromocodeLike.objects.get(
+            promocode=promocodes.first(), user=user
+        ).delete()
+
+    return status.OK, schemas.PromocodeLikeOut()

@@ -88,3 +88,11 @@ class PromocodeViewOut(Schema):
     is_liked_by_user: bool
     like_count: int
     comment_count: int
+
+
+class PromocodeLikeOut(Schema):
+    status: str = "ok"
+
+
+class PromocodeRemoveLikeOut(Schema):
+    status: str = "ok"

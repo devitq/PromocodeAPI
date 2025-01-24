@@ -209,3 +209,6 @@ class PromocodeLike(BaseModel):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="liked_promocodes"
     )
+
+    class Meta:
+        unique_together = ("promocode", "user")

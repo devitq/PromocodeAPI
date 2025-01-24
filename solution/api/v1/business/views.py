@@ -2,6 +2,7 @@ import datetime
 from collections import Counter
 from http import HTTPStatus as status
 
+from django.db import transaction
 from django.db.models import Count, Q, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponse
@@ -119,10 +120,11 @@ def create_promocode(
         validate_unique=False,
     )
 
-    target_obj.save()
+    with transaction.atomic():
+        target_obj.save()
 
-    promocode_obj.target = target_obj
-    promocode_obj.save()
+        promocode_obj.target = target_obj
+        promocode_obj.save()
 
     return status.CREATED, schemas.CreatePromocodeOut(id=promocode_obj.id)
 
@@ -271,9 +273,10 @@ def patch_promocode(
             setattr(promocode.target, field, value)
         if "country" in target_data:
             promocode.target.country_raw = target_data["country"]
-        promocode.target.save()
 
-    promocode.save()
+    with transaction.atomic():
+        promocode.target.save()
+        promocode.save()
 
     return status.OK, utils.map_promocode_to_schema(promocode)
 
