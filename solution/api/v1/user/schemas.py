@@ -2,16 +2,17 @@ import uuid
 from typing import ClassVar
 
 from ninja import ModelSchema, Schema
-from pydantic import Field
+from pydantic import Field, StrictInt
 
 from apps.user.models import User
 
 
 class UserTarget(ModelSchema):
+    age: StrictInt
+
     class Meta:
         model = User
         fields: ClassVar[list[str]] = [
-            User.age.field.name,
             User.country.field.name,
         ]
 

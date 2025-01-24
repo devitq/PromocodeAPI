@@ -176,7 +176,7 @@ def list_promocode(
 
     promocodes = promocodes[filters.offset : filters.offset + filters.limit]
 
-    return [
+    return status.OK, [
         utils.map_promocode_to_schema(promocode) for promocode in promocodes
     ]
 
@@ -192,7 +192,7 @@ def list_promocode(
 )
 def get_promocode(
     request: HttpRequest, promocode_id: str
-) -> schemas.PromocodeViewOut:
+) -> tuple[int, schemas.PromocodeViewOut]:
     business = request.auth
 
     promocodes = Promocode.objects.filter(id=promocode_id)
@@ -218,7 +218,7 @@ def get_promocode(
 
     promocode = promocodes.first()
 
-    return utils.map_promocode_to_schema(promocode)
+    return status.OK, utils.map_promocode_to_schema(promocode)
 
 
 @router.patch(
@@ -234,7 +234,7 @@ def patch_promocode(
     request: HttpRequest,
     promocode_id: str,
     patched_fields: schemas.PatchPromocodeIn,
-) -> schemas.PromocodeViewOut:
+) -> tuple[status.OK, schemas.PromocodeViewOut]:
     business = request.auth
 
     promocodes = Promocode.objects.filter(id=promocode_id)
@@ -275,7 +275,7 @@ def patch_promocode(
 
     promocode.save()
 
-    return utils.map_promocode_to_schema(promocode)
+    return status.OK, utils.map_promocode_to_schema(promocode)
 
 
 @router.get(
@@ -289,7 +289,7 @@ def patch_promocode(
 )
 def promocode_stat(
     request: HttpRequest, promocode_id: str
-) -> schemas.PromocodeStats:
+) -> tuple[int, schemas.PromocodeStats]:
     business = request.auth
 
     promocodes = Promocode.objects.filter(id=promocode_id)

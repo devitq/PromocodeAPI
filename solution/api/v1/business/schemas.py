@@ -3,7 +3,7 @@ import uuid
 from typing import ClassVar, Literal
 
 from ninja import ModelSchema, Schema
-from pydantic import Field
+from pydantic import Field, StrictInt
 from pydantic_extra_types.country import CountryAlpha2
 
 from apps.business.models import Business
@@ -40,26 +40,24 @@ class BusinessSignInOut(Schema):
 
 class PromocodeTarget(ModelSchema):
     categories: list[str] | None = None
-    country: str | None = None
+    age_from: StrictInt | None = None
+    age_until: StrictInt | None = None
 
     class Meta:
         model = PromocodeTarget
-        fields: ClassVar[list[str]] = [
-            PromocodeTarget.age_from.field.name,
-            PromocodeTarget.age_until.field.name,
-        ]
+        fields: ClassVar[list[str]] = [PromocodeTarget.country.field.name]
 
 
 class CreatePromocodeIn(ModelSchema):
     target: PromocodeTarget
     promo_unique: list[str] | None = None
+    max_count: StrictInt
 
     class Meta:
         model = Promocode
         fields: ClassVar[list[str]] = [
             Promocode.description.field.name,
             Promocode.image_url.field.name,
-            Promocode.max_count.field.name,
             Promocode.active_from.field.name,
             Promocode.active_until.field.name,
             Promocode.mode.field.name,
@@ -109,7 +107,7 @@ class PatchPromocodeIn(Schema):
     description: str | None = None
     image_url: str | None = None
     target: PromocodeTarget | None = None
-    max_count: int | None = None
+    max_count: StrictInt | None = None
     active_from: datetime.date | None = None
     active_until: datetime.date | None = None
 
