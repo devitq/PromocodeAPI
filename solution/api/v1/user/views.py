@@ -282,6 +282,7 @@ def delete_like(
         status.CREATED: schemas.CommentOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
     },
+    exclude_none=True,
 )
 def add_comment(
     request: HttpRequest, promocode_id: str, comment: schemas.CommentIn
@@ -314,6 +315,7 @@ def list_comments(
     request: HttpRequest,
     filters: Query[schemas.PromocodeCommentsFilters],
     promocode_id: str,
+    response: HttpResponse
 ) -> tuple[int, schemas.CommentOut]:
     promocodes = Promocode.objects.filter(id=promocode_id)
 
@@ -323,6 +325,8 @@ def list_comments(
     promocodes = promocodes.prefetch_related("comments", "comments__author")
 
     comments = promocodes.first().comments.all()
+
+    response["X-Total-Count"] = len(comments)
 
     comments = comments[filters.offset : filters.offset + filters.limit]
 
@@ -362,6 +366,7 @@ def get_comment(
         status.OK: schemas.CommentOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
     },
+    exclude_none=True,
 )
 def update_comment(
     request: HttpRequest,
