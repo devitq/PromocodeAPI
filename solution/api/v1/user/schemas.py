@@ -1,9 +1,11 @@
+import datetime
 import uuid
 from typing import ClassVar
 
 from ninja import ModelSchema, Schema
 from pydantic import Field, StrictInt
 
+from apps.promo.models import PromocodeComment
 from apps.user.models import User
 
 
@@ -95,4 +97,36 @@ class PromocodeLikeOut(Schema):
 
 
 class PromocodeRemoveLikeOut(Schema):
+    status: str = "ok"
+
+
+class PromocodeCommentsFilters(Schema):
+    limit: int = Field(10, gt=0, description="Limit must be greater than 0")
+    offset: int = Field(
+        0, ge=0, description="Offset must be greater than or equal to 0"
+    )
+
+
+class CommentIn(ModelSchema):
+    class Meta:
+        model = PromocodeComment
+        fields: ClassVar[list[str]] = [
+            PromocodeComment.text.field.name
+        ]
+
+
+class CommentAuthor(Schema):
+    name: str
+    surname: str
+    avatar_url: str | None
+
+
+class CommentOut(Schema):
+    id: uuid.UUID
+    text: str
+    date: datetime.datetime
+    author: CommentAuthor
+
+
+class CommentDeletedOut(Schema):
     status: str = "ok"

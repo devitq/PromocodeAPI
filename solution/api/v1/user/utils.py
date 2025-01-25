@@ -1,5 +1,5 @@
 from api.v1.user import schemas
-from apps.promo.models import Promocode
+from apps.promo.models import Promocode, PromocodeComment
 from apps.user.models import User
 
 
@@ -28,4 +28,17 @@ def map_promocode_to_schema(promocode: Promocode) -> schemas.PromocodeViewOut:
         like_count=promocode.like_count,
         comment_count=promocode.comment_count,
         active=promocode.active,
+    )
+
+
+def map_comment_to_schema(comment: PromocodeComment) -> schemas.CommentOut:
+    return schemas.CommentOut(
+        id=comment.id,
+        text=comment.text,
+        date=comment.date,
+        author=schemas.CommentAuthor(
+            name=comment.author.name,
+            surname=comment.author.surname,
+            avatar_url=comment.author.avatar_url
+        )
     )

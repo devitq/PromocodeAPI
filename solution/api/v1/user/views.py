@@ -9,7 +9,12 @@ from ninja.errors import AuthenticationError, HttpError
 from api.v1 import schemas as global_schemas
 from api.v1.auth import UserAuth
 from api.v1.user import schemas, utils
-from apps.promo.models import Promocode, PromocodeActivation, PromocodeLike
+from apps.promo.models import (
+    Promocode,
+    PromocodeActivation,
+    PromocodeComment,
+    PromocodeLike,
+)
 from apps.user.models import User
 from config.errors import UniqueConstraintError
 
@@ -268,3 +273,157 @@ def delete_like(
         ).delete()
 
     return status.OK, schemas.PromocodeLikeOut()
+
+
+@router.post(
+    "/promo/{promocode_id}/comments",
+    auth=UserAuth(),
+    response={
+        status.CREATED: schemas.CommentOut,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+    },
+)
+def add_comment(
+    request: HttpRequest, promocode_id: str, comment: schemas.CommentIn
+) -> tuple[int, schemas.CommentOut]:
+    user: User = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id)
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    comment_obj = PromocodeComment(
+        promocode=promocodes.first(), author=user, **comment.dict()
+    )
+    comment_obj.save()
+
+    return status.CREATED, utils.map_comment_to_schema(comment_obj)
+
+
+@router.get(
+    "/promo/{promocode_id}/comments",
+    auth=UserAuth(),
+    response={
+        status.OK: list[schemas.CommentOut],
+        status.NOT_FOUND: global_schemas.NotFoundError,
+    },
+    exclude_none=True,
+)
+def list_comments(
+    request: HttpRequest,
+    filters: Query[schemas.PromocodeCommentsFilters],
+    promocode_id: str,
+) -> tuple[int, schemas.CommentOut]:
+    promocodes = Promocode.objects.filter(id=promocode_id)
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    promocodes = promocodes.prefetch_related("comments", "comments__author")
+
+    comments = promocodes.first().comments.all()
+
+    comments = comments[filters.offset : filters.offset + filters.limit]
+
+    return status.OK, [
+        utils.map_comment_to_schema(comment) for comment in comments
+    ]
+
+
+@router.get(
+    "/promo/{promocode_id}/comments/{comment_id}",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.CommentOut,
+        status.NOT_FOUND: global_schemas.NotFoundError,
+    },
+    exclude_none=True,
+)
+def get_comment(
+    request: HttpRequest, promocode_id: str, comment_id: str
+) -> tuple[int, schemas.CommentOut]:
+    commnets = PromocodeComment.objects.filter(
+        id=comment_id, promocode_id=promocode_id
+    )
+
+    if not commnets.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    comment = commnets.select_related("author").first()
+
+    return status.OK, utils.map_comment_to_schema(comment)
+
+
+@router.put(
+    "/promo/{promocode_id}/comments/{comment_id}",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.CommentOut,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+    },
+)
+def update_comment(
+    request: HttpRequest,
+    promocode_id: str,
+    comment_id: str,
+    comment: schemas.CommentIn,
+) -> tuple[int, schemas.CommentOut]:
+    user: User = request.auth
+
+    commnets = PromocodeComment.objects.filter(
+        id=comment_id, promocode_id=promocode_id
+    )
+
+    if not commnets.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    comments = commnets.select_related("author").filter(author=user)
+
+    if not comments.exists():
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    comment_obj = comments.first()
+
+    put_data = comment.dict()
+    for field, value in put_data.items():
+        setattr(comment_obj, field, value)
+
+    comment_obj.save()
+
+    return status.OK, utils.map_comment_to_schema(comment_obj)
+
+
+@router.delete(
+    "/promo/{promocode_id}/comments/{comment_id}",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.CommentDeletedOut,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.NOT_FOUND: global_schemas.NotFoundError,
+    },
+)
+def delete_comment(
+    request: HttpRequest,
+    promocode_id: str,
+    comment_id: str,
+) -> tuple[int, schemas.CommentOut]:
+    user: User = request.auth
+
+    commnets = PromocodeComment.objects.filter(
+        id=comment_id, promocode_id=promocode_id
+    )
+
+    if not commnets.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    comments = commnets.select_related("author").filter(author=user)
+
+    if not comments.exists():
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    comment_obj = comments.first()
+
+    comment_obj.delete()
+
+    return status.OK, schemas.CommentDeletedOut()
