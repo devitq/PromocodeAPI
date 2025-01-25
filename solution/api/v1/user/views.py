@@ -324,7 +324,7 @@ def list_comments(
 
     promocodes = promocodes.prefetch_related("comments", "comments__author")
 
-    comments = promocodes.first().comments.all()
+    comments = promocodes.first().comments.order_by("-date").all()
 
     response["X-Total-Count"] = len(comments)
 
