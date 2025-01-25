@@ -3,8 +3,9 @@ from http import HTTPStatus as status
 
 import django.core.exceptions
 import django.http
+import ninja.errors
 from django.http import HttpRequest, HttpResponse
-from ninja import NinjaAPI, errors
+from ninja import NinjaAPI
 
 from config.errors import UniqueConstraintError
 
@@ -47,7 +48,7 @@ def handle_django_validation_error(
 
 def handle_authentication_error(
     request: HttpRequest,
-    exc: errors.AuthenticationError,
+    exc: ninja.errors.AuthenticationError,
     router: NinjaAPI,
 ) -> HttpResponse:
     return router.create_response(
@@ -59,7 +60,7 @@ def handle_authentication_error(
 
 def handle_validation_error(
     request: HttpRequest,
-    exc: errors.ValidationError,
+    exc: ninja.errors.ValidationError,
     router: NinjaAPI,
 ) -> HttpResponse:
     return router.create_response(
@@ -98,8 +99,8 @@ def handle_unknown_exception(
 exception_handlers = [
     (UniqueConstraintError, handle_unique_constraint_error),
     (django.core.exceptions.ValidationError, handle_django_validation_error),
-    (errors.AuthenticationError, handle_authentication_error),
-    (errors.ValidationError, handle_validation_error),
+    (ninja.errors.AuthenticationError, handle_authentication_error),
+    (ninja.errors.ValidationError, handle_validation_error),
     (django.http.Http404, handle_not_found_error),
     (Exception, handle_unknown_exception),
 ]

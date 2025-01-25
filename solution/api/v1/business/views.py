@@ -22,7 +22,7 @@ router = Router(tags=["business"])
     "/auth/sign-up",
     response={
         status.OK: schemas.BusinessSignUpOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
         status.CONFLICT: global_schemas.UniqueConstraintError,
     },
 )
@@ -43,7 +43,7 @@ def signup(
     "/auth/sign-in",
     response={
         status.OK: schemas.BusinessSignInOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
         status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
 )
@@ -79,7 +79,7 @@ def signin(
     auth=BusinessAuth(),
     response={
         status.CREATED: schemas.CreatePromocodeOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
         status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
 )
@@ -134,7 +134,7 @@ def create_promocode(
     auth=BusinessAuth(),
     response={
         status.OK: list[schemas.PromocodeViewOut],
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
     },
     exclude_none=True,
 )

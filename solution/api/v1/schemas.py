@@ -1,4 +1,5 @@
 from http import HTTPStatus as status
+from typing import Any
 
 from ninja import Schema
 
@@ -11,9 +12,9 @@ class NotFoundError(Schema):
     detail: str = status.NOT_FOUND.phrase
 
 
-class ValidationError(Schema):
-    detail: str
+class BadRequestError(Schema):
+    detail: Any
 
 
 class UniqueConstraintError(Schema):
-    detail: str
+    detail: Any

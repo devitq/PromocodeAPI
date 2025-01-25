@@ -20,7 +20,7 @@ router = Router(tags=["user"])
     "/auth/sign-up",
     response={
         status.OK: schemas.UserSignUpOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
         status.CONFLICT: global_schemas.UniqueConstraintError,
     },
 )
@@ -44,7 +44,7 @@ def signup(
     "/auth/sign-in",
     response={
         status.OK: schemas.UserSignInOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
         status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
 )
@@ -94,7 +94,7 @@ def get_profile(request: HttpRequest) -> tuple[int, schemas.ViewUserOut]:
     auth=UserAuth(),
     response={
         status.OK: schemas.ViewUserOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
     },
     exclude_none=True,
 )
@@ -117,7 +117,7 @@ def patch_profile(
     auth=UserAuth(),
     response={
         status.OK: list[schemas.PromocodeViewOut],
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
     },
     exclude_none=True,
 )
@@ -180,7 +180,7 @@ def feed(
     auth=UserAuth(),
     response={
         status.OK: schemas.PromocodeViewOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
     },
     exclude_none=True,
 )
@@ -223,7 +223,7 @@ def get_promocode(
     auth=UserAuth(),
     response={
         status.OK: schemas.PromocodeLikeOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
     },
     exclude_none=True,
 )
@@ -248,7 +248,7 @@ def add_like(
     auth=UserAuth(),
     response={
         status.OK: schemas.PromocodeRemoveLikeOut,
-        status.BAD_REQUEST: global_schemas.ValidationError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
     },
     exclude_none=True,
 )
