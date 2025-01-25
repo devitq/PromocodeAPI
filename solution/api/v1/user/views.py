@@ -161,10 +161,12 @@ def feed(
             Q(target__categories__icontains=category_lower)
         )
 
+    promocodes = promocodes.all()
+
     if filters.active is not None:
         promocodes = [p for p in promocodes if p.active == filters.active]
 
-    response["X-Total-Count"] = promocodes.count()
+    response["X-Total-Count"] = len(promocodes)
 
     promocodes = promocodes[filters.offset : filters.offset + filters.limit]
 
