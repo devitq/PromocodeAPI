@@ -164,13 +164,20 @@ def feed(
 
     promocodes = promocodes.order_by("-created_at")
 
+    promocodes = promocodes.all()
+
     if filters.category:
         category_lower = filters.category.lower()
-        promocodes = promocodes.filter(
-            Q(target__categories__icontains=category_lower)
-        )
 
-    promocodes = promocodes.all()
+        def matches_category(promocode: Promocode) -> bool:
+            categories = (
+                promocode.target.categories or []
+            )
+            return any(
+                category.lower() == category_lower for category in categories
+            )
+
+        promocodes = [p for p in promocodes if matches_category(p)]
 
     if filters.active is not None:
         promocodes = [p for p in promocodes if p.active == filters.active]
