@@ -1,3 +1,6 @@
+from datetime import datetime
+
+import pytz
 from django.core.exceptions import ValidationError
 from django.core.validators import (
     MaxValueValidator,
@@ -5,7 +8,6 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.utils import timezone
 from django_countries.fields import CountryField
 
 from apps.business.models import Business
@@ -163,7 +165,8 @@ class Promocode(BaseModel):
 
     @property
     def active(self) -> bool:
-        current_date = timezone.datetime.today().date()
+        timezone_utc3 = pytz.timezone("Europe/Moscow")
+        current_date = datetime.now(timezone_utc3).date()
 
         is_active_by_date = (
             self.active_from is None or self.active_from <= current_date
