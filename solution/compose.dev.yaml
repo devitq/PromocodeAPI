@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - 8080:8080
+      - 8000:8080
     environment:
       - DJANGO_DEBUG=False
       - SERVER_ADDRESS=0.0.0.0:8080
@@ -32,9 +32,11 @@ services:
 
   antifraud:
     image: docker.io/lodthe/prod-backend-antifraud:latest
+    ports:
+      - 9090:9090
     environment:
       - SERVER_PORT=9090
-      - CACHE_DURATION_MS=5000
+      - CACHE_DURATION_MS=60000
 
 volumes:
   postgres_data:
