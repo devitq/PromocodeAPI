@@ -86,6 +86,7 @@ def signin(
     auth=UserAuth(),
     response={
         status.OK: schemas.ViewUserOut,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -101,6 +102,7 @@ def get_profile(request: HttpRequest) -> tuple[int, schemas.ViewUserOut]:
     response={
         status.OK: schemas.ViewUserOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -124,6 +126,7 @@ def patch_profile(
     response={
         status.OK: list[schemas.PromocodeViewOut],
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -182,11 +185,56 @@ def feed(
 
 
 @router.get(
+    "/promo/history",
+    auth=UserAuth(),
+    response={
+        status.OK: list[schemas.PromocodeViewOut],
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
+    },
+)
+def get_activations_history(
+    request: HttpRequest,
+    filters: Query[schemas.ActivationsHistoryFilters],
+    response: HttpResponse,
+) -> tuple[int, list[schemas.PromocodeViewOut]]:
+    user: User = request.auth
+
+    activations = (
+        PromocodeActivation.objects.filter(user=user)
+        .select_related("promocode", "promocode__business")
+        .prefetch_related("promocode__likes", "promocode__comments")
+        .annotate(
+            like_count=Count("promocode__likes", distinct=True),
+            comment_count=Count("promocode__comments", distinct=True),
+            is_liked_by_user=Exists(
+                PromocodeLike.objects.filter(
+                    promocode=OuterRef("promocode"), user=user
+                )
+            ),
+        )
+        .order_by("-timestamp")
+    )
+
+    result = []
+    for activation in activations:
+        promocode = activation.promocode
+        promocode.like_count = activation.like_count
+        promocode.comment_count = activation.comment_count
+        promocode.is_liked_by_user = activation.is_liked_by_user
+        promocode.is_activated_by_user = True
+        result.append(utils.map_promocode_to_schema(promocode))
+
+    return status.OK, result
+
+
+@router.get(
     "/promo/{promocode_id}",
     auth=UserAuth(),
     response={
         status.OK: schemas.PromocodeViewOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -230,6 +278,7 @@ def get_promocode(
     response={
         status.OK: schemas.PromocodeLikeOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -255,6 +304,7 @@ def add_like(
     response={
         status.OK: schemas.PromocodeRemoveLikeOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -282,6 +332,7 @@ def delete_like(
     response={
         status.CREATED: schemas.CommentOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -309,6 +360,7 @@ def add_comment(
     response={
         status.OK: list[schemas.CommentOut],
         status.NOT_FOUND: global_schemas.NotFoundError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -341,7 +393,8 @@ def list_comments(
     auth=UserAuth(),
     response={
         status.OK: schemas.CommentOut,
-        status.NOT_FOUND: global_schemas.NotFoundError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -366,6 +419,7 @@ def get_comment(
     response={
         status.OK: schemas.CommentOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -406,7 +460,7 @@ def update_comment(
     response={
         status.OK: schemas.CommentDeletedOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
-        status.NOT_FOUND: global_schemas.NotFoundError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
 )
 def delete_comment(
@@ -441,7 +495,7 @@ def delete_comment(
     response={
         status.OK: schemas.PromocodeActivateOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
-        status.NOT_FOUND: global_schemas.NotFoundError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
 )
 def activate_promocode(
