@@ -56,7 +56,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 ENV DJANGO_DEBUG=False \
     DJANGO_ALLOWED_HOSTS=* \
     DJANGO_NOTIFIER_TELEGRAM_BOT_TOKEN=6196898691:AAHtiIgbLAHlELGqO4qmrKoqjWaEJohr9fY \
-    DJANGO_NOTIFIER_TELEGRAM_CHAT_ID=-1002304409222
+    DJANGO_NOTIFIER_TELEGRAM_CHAT_ID=826812483
 
 # Start gunicorn
 CMD python manage.py migrate && gunicorn config.wsgi -b ${SERVER_ADDRESS}
