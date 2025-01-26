@@ -84,7 +84,6 @@ class AntifraudServiceInteractor:
 
         payload = {"user_email": user_email, "promo_id": promo_id}
         try:
-            logger.info("Trying to validate antifraud")
             with httpx.Client(timeout=5) as client:
                 response = cls._make_request(
                     client,
@@ -95,7 +94,6 @@ class AntifraudServiceInteractor:
                 )
 
                 if response:
-                    logger.info("Antifraud works perfectly")
                     result = response.json()
 
                     if "cache_until" in result:
