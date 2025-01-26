@@ -172,8 +172,8 @@ def list_promocode(
         promocodes = promocodes.order_by("-created_at")
 
     promocodes = promocodes.prefetch_related("activations", "likes").annotate(
-        used_count=Count("activations"),
-        like_count=Count("likes"),
+        used_count=Count("activations", distinct=True),
+        like_count=Count("likes", distinct=True),
     )
 
     promocodes = promocodes[filters.offset : filters.offset + filters.limit]
@@ -213,8 +213,8 @@ def get_promocode(
         promocodes.select_related("target")
         .prefetch_related("activations", "likes")
         .annotate(
-            used_count=Count("activations"),
-            like_count=Count("likes"),
+            used_count=Count("activations", distinct=True),
+            like_count=Count("likes", distinct=True),
         )
     )
 
@@ -255,8 +255,8 @@ def patch_promocode(
         promocodes.select_related("target")
         .prefetch_related("activations", "likes")
         .annotate(
-            used_count=Count("activations"),
-            like_count=Count("likes"),
+            used_count=Count("activations", distinct=True),
+            like_count=Count("likes", distinct=True),
         )
     )
 

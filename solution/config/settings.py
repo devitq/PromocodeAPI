@@ -28,7 +28,7 @@ ALLOWED_HOSTS = env(
 
 # Integrations
 
-ANTIFRAUD_ENDPOINT = (
+ANTIFRAUD_ADDRESS = (
     f"http://{env('ANTIFRAUD_ADDRESS', default='http://localhost:9090')}"
 )
 

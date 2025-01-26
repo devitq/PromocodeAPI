@@ -39,6 +39,6 @@ def map_comment_to_schema(comment: PromocodeComment) -> schemas.CommentOut:
         author=schemas.CommentAuthor(
             name=comment.author.name,
             surname=comment.author.surname,
-            avatar_url=comment.author.avatar_url
-        )
+            avatar_url=comment.author.avatar_url,
+        ),
     )

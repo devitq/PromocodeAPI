@@ -10,7 +10,7 @@ class AntifraudHealthCheck(BaseHealthCheckBackend):
 
     def check_status(self) -> None:
         try:
-            response = httpx.get(f"{settings.ANTIFRAUD_ENDPOINT}/api/ping")
+            response = httpx.get(f"{settings.ANTIFRAUD_ADDRESS}/api/ping")
             if response.status_code >= status.INTERNAL_SERVER_ERROR:
                 self.add_error("Antifraud service is unaccessible")
         except httpx.HTTPError:

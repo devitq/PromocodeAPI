@@ -71,7 +71,9 @@ class PatchUserIn(Schema):
 
 
 class PromocodeFeedFilters(Schema):
-    limit: int = Field(10, gt=0, description="Limit must be greater than 0")
+    limit: int = Field(
+        10, ge=0, description="Limit must be greater than or equal 0"
+    )
     offset: int = Field(
         0, ge=0, description="Offset must be greater than or equal to 0"
     )
@@ -101,7 +103,9 @@ class PromocodeRemoveLikeOut(Schema):
 
 
 class PromocodeCommentsFilters(Schema):
-    limit: int = Field(10, gt=0, description="Limit must be greater than 0")
+    limit: int = Field(
+        10, ge=0, description="Limit must be greater than or equal 0"
+    )
     offset: int = Field(
         0, ge=0, description="Offset must be greater than or equal to 0"
     )
@@ -110,9 +114,7 @@ class PromocodeCommentsFilters(Schema):
 class CommentIn(ModelSchema):
     class Meta:
         model = PromocodeComment
-        fields: ClassVar[list[str]] = [
-            PromocodeComment.text.field.name
-        ]
+        fields: ClassVar[list[str]] = [PromocodeComment.text.field.name]
 
 
 class CommentAuthor(Schema):
@@ -130,3 +132,7 @@ class CommentOut(Schema):
 
 class CommentDeletedOut(Schema):
     status: str = "ok"
+
+
+class PromocodeActivateOut(Schema):
+    promo: str

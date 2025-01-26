@@ -70,7 +70,9 @@ class CreatePromocodeOut(Schema):
 
 
 class PromocodeListFilters(Schema):
-    limit: int = Field(10, gt=0, description="Limit must be greater than 0")
+    limit: int = Field(
+        10, ge=0, description="Limit must be greater than or equal 0"
+    )
     offset: int = Field(
         0, ge=0, description="Offset must be greater than or equal to 0"
     )

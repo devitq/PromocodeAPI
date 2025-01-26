@@ -144,6 +144,23 @@ class Promocode(BaseModel):
 
         PromocodeDurationValidator()(self)
 
+    def activate_promocode(self, user: User) -> str:
+        promocode: str | None = None
+
+        if self.mode == self.ModeChoices.COMMON:
+            promocode = self.promo_common
+        elif self.mode == self.ModeChoices.UNIQUE:
+            unused_promocodes = self.promo_unique[
+                len(self.promo_unique_activated) : :
+            ]
+            promocode = unused_promocodes[0]
+            self.promo_unique_activated.append(promocode)
+            self.save()
+
+        PromocodeActivation.objects.create(promocode=self, user=user)
+
+        return promocode
+
     @property
     def active(self) -> bool:
         current_date = timezone.datetime.today().date()
@@ -209,6 +226,9 @@ class PromocodeLike(BaseModel):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="liked_promocodes"
     )
+
+    def __str__(self) -> str:
+        return f"{self.promocode.id} | {self.user.id}"
 
     class Meta:
         unique_together = ("promocode", "user")

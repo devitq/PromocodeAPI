@@ -17,6 +17,7 @@ from apps.promo.models import (
 )
 from apps.user.models import User
 from config.errors import UniqueConstraintError
+from config.integrations.antifraud.interactor import AntifraudServiceInteractor
 
 router = Router(tags=["user"])
 
@@ -146,8 +147,8 @@ def feed(
     )
 
     promocodes = promocodes.prefetch_related("likes", "comments").annotate(
-        like_count=Count("likes"),
-        comment_count=Count("comments"),
+        like_count=Count("likes", distinct=True),
+        comment_count=Count("comments", distinct=True),
         is_liked_by_user=Exists(
             PromocodeLike.objects.filter(promocode=OuterRef("pk"), user=user)
         ),
@@ -203,8 +204,8 @@ def get_promocode(
         promocodes.select_related("business")
         .prefetch_related("likes", "comments")
         .annotate(
-            like_count=Count("likes"),
-            comment_count=Count("comments"),
+            like_count=Count("likes", distinct=True),
+            comment_count=Count("comments", distinct=True),
             is_liked_by_user=Exists(
                 PromocodeLike.objects.filter(
                     promocode=OuterRef("pk"), user=user
@@ -234,7 +235,7 @@ def get_promocode(
 )
 def add_like(
     request: HttpRequest, promocode_id: str
-) -> tuple[status.OK, schemas.PromocodeViewOut]:
+) -> tuple[status.OK, schemas.PromocodeLikeOut]:
     user: User = request.auth
 
     promocodes = Promocode.objects.filter(id=promocode_id)
@@ -259,7 +260,7 @@ def add_like(
 )
 def delete_like(
     request: HttpRequest, promocode_id: str
-) -> tuple[status.OK, schemas.PromocodeViewOut]:
+) -> tuple[status.OK, schemas.PromocodeRemoveLikeOut]:
     user: User = request.auth
 
     promocodes = Promocode.objects.filter(id=promocode_id)
@@ -272,7 +273,7 @@ def delete_like(
             promocode=promocodes.first(), user=user
         ).delete()
 
-    return status.OK, schemas.PromocodeLikeOut()
+    return status.OK, schemas.PromocodeRemoveLikeOut()
 
 
 @router.post(
@@ -315,8 +316,8 @@ def list_comments(
     request: HttpRequest,
     filters: Query[schemas.PromocodeCommentsFilters],
     promocode_id: str,
-    response: HttpResponse
-) -> tuple[int, schemas.CommentOut]:
+    response: HttpResponse,
+) -> tuple[int, list[schemas.CommentOut]]:
     promocodes = Promocode.objects.filter(id=promocode_id)
 
     if not promocodes.exists():
@@ -412,7 +413,7 @@ def delete_comment(
     request: HttpRequest,
     promocode_id: str,
     comment_id: str,
-) -> tuple[int, schemas.CommentOut]:
+) -> tuple[int, schemas.CommentDeletedOut]:
     user: User = request.auth
 
     commnets = PromocodeComment.objects.filter(
@@ -432,3 +433,53 @@ def delete_comment(
     comment_obj.delete()
 
     return status.OK, schemas.CommentDeletedOut()
+
+
+@router.post(
+    "/promo/{promocode_id}/activate",
+    auth=UserAuth(),
+    response={
+        status.OK: schemas.PromocodeActivateOut,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.NOT_FOUND: global_schemas.NotFoundError,
+    },
+)
+def activate_promocode(
+    request: HttpRequest,
+    promocode_id: str,
+) -> tuple[int, schemas.PromocodeActivateOut]:
+    user: User = request.auth
+
+    promocodes = Promocode.objects.filter(id=promocode_id)
+
+    if not promocodes.exists():
+        raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
+
+    promocodes = promocodes.select_related("target").filter(
+        Q(
+            Q(target__age_from__isnull=True)
+            | Q(target__age_from__lte=user.age),
+            Q(target__age_until__isnull=True)
+            | Q(target__age_until__gte=user.age),
+            Q(target__country__isnull=True) | Q(target__country=user.country),
+        )
+    )
+
+    if not promocodes.exists():
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    promocode = promocodes.first()
+
+    if not promocode.active:
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    antifraud_result = AntifraudServiceInteractor().validate(
+        user_email=user.email, promo_id=str(promocode.id)
+    )
+
+    if not antifraud_result["ok"]:
+        raise HttpError(status.FORBIDDEN, status.FORBIDDEN.phrase)
+
+    promo = promocode.activate_promocode(user)
+
+    return status.OK, schemas.PromocodeActivateOut(promo=promo)
