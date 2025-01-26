@@ -29,7 +29,8 @@ ALLOWED_HOSTS = env(
 # Integrations
 
 ANTIFRAUD_ADDRESS = (
-    f"http://{env('ANTIFRAUD_ADDRESS', default='http://localhost:9090')}"
+    f"{env('ANTIFRAUD_SCHEMA', default='http')}://"
+    f"{env('ANTIFRAUD_ADDRESS', default='localhost:9090')}"
 )
 
 # Register healthcheck
