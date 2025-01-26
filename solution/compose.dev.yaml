@@ -36,7 +36,7 @@ services:
       - 9090:9090
     environment:
       - SERVER_PORT=9090
-      - CACHE_DURATION_MS=60000
+      - CACHE_DURATION_MS=10
 
 volumes:
   postgres_data:
