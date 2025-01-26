@@ -100,11 +100,9 @@ class AntifraudServiceInteractor:
                         cache.set(cache_key, result)
 
                     return result
-
-        except Exception as e:
+        except Exception:
             logger.exception(
-                "Unexpected error during antifraud validation: %s",
-                e,  # noqa: TRY401
+                "Unexpected error during antifraud validation",
             )
 
         return {"ok": False}

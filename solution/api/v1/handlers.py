@@ -7,14 +7,14 @@ import ninja.errors
 from django.http import HttpRequest, HttpResponse
 from ninja import NinjaAPI
 
-from config.errors import UniqueConstraintError
+from config.errors import ConflictError
 
 logger = logging.getLogger("django")
 
 
-def handle_unique_constraint_error(
+def handle_conflict_error(
     request: HttpRequest,
-    exc: UniqueConstraintError,
+    exc: ConflictError,
     router: NinjaAPI,
 ) -> HttpResponse:
     detail = list(exc.validation_error)
@@ -97,7 +97,7 @@ def handle_unknown_exception(
 
 
 exception_handlers = [
-    (UniqueConstraintError, handle_unique_constraint_error),
+    (ConflictError, handle_conflict_error),
     (django.core.exceptions.ValidationError, handle_django_validation_error),
     (ninja.errors.AuthenticationError, handle_authentication_error),
     (ninja.errors.ValidationError, handle_validation_error),

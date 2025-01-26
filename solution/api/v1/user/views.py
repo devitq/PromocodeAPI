@@ -16,7 +16,7 @@ from apps.promo.models import (
     PromocodeLike,
 )
 from apps.user.models import User
-from config.errors import UniqueConstraintError
+from config.errors import ConflictError
 from config.integrations.antifraud.interactor import AntifraudServiceInteractor
 
 router = Router(tags=["user"])
@@ -27,7 +27,7 @@ router = Router(tags=["user"])
     response={
         status.OK: schemas.UserSignUpOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
-        status.CONFLICT: global_schemas.UniqueConstraintError,
+        status.CONFLICT: global_schemas.ConflictError,
     },
 )
 def signup(
@@ -216,16 +216,20 @@ def get_activations_history(
         .order_by("-timestamp")
     )
 
-    result = []
+    promocodes = []
     for activation in activations:
         promocode = activation.promocode
         promocode.like_count = activation.like_count
         promocode.comment_count = activation.comment_count
         promocode.is_liked_by_user = activation.is_liked_by_user
         promocode.is_activated_by_user = True
-        result.append(utils.map_promocode_to_schema(promocode))
+        promocodes.append(utils.map_promocode_to_schema(promocode))
 
-    return status.OK, result
+    response["X-Total-Count"] = len(promocodes)
+
+    promocodes = promocodes[filters.offset : filters.offset + filters.limit]
+
+    return status.OK, promocodes
 
 
 @router.get(
@@ -292,7 +296,7 @@ def add_like(
     if not promocodes.exists():
         raise HttpError(status.NOT_FOUND, status.NOT_FOUND.phrase)
 
-    with contextlib.suppress(UniqueConstraintError):
+    with contextlib.suppress(ConflictError):
         PromocodeLike.objects.create(promocode=promocodes.first(), user=user)
 
     return status.OK, schemas.PromocodeLikeOut()

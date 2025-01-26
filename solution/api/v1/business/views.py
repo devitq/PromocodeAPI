@@ -23,7 +23,7 @@ router = Router(tags=["business"])
     response={
         status.OK: schemas.BusinessSignUpOut,
         status.BAD_REQUEST: global_schemas.BadRequestError,
-        status.CONFLICT: global_schemas.UniqueConstraintError,
+        status.CONFLICT: global_schemas.ConflictError,
     },
 )
 def signup(
@@ -135,6 +135,7 @@ def create_promocode(
     response={
         status.OK: list[schemas.PromocodeViewOut],
         status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -188,7 +189,8 @@ def list_promocode(
     auth=BusinessAuth(),
     response={
         status.OK: schemas.PromocodeViewOut,
-        status.NOT_FOUND: global_schemas.NotFoundError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -228,7 +230,8 @@ def get_promocode(
     auth=BusinessAuth(),
     response={
         status.OK: schemas.PromocodeViewOut,
-        status.NOT_FOUND: global_schemas.NotFoundError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )
@@ -286,7 +289,8 @@ def patch_promocode(
     auth=BusinessAuth(),
     response={
         status.OK: schemas.PromocodeStats,
-        status.NOT_FOUND: global_schemas.NotFoundError,
+        status.BAD_REQUEST: global_schemas.BadRequestError,
+        status.UNAUTHORIZED: global_schemas.UnauthorizedError,
     },
     exclude_none=True,
 )

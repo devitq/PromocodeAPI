@@ -4,7 +4,7 @@ from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from config.errors import UniqueConstraintError
+from config.errors import ConflictError
 
 
 class BaseModel(models.Model):
@@ -39,10 +39,10 @@ class BaseModel(models.Model):
             try:
                 self.validate_unique()
             except ValidationError as e:
-                raise UniqueConstraintError(e) from None
+                raise ConflictError(e) from None
 
         if validate_constraints:
             try:
                 self.validate_constraints()
             except ValidationError as e:
-                raise UniqueConstraintError(e) from None
+                raise ConflictError(e) from None
