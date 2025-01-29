@@ -87,7 +87,14 @@ class PromocodeListFilters(Schema):
         0, ge=0, description="Offset must be greater than or equal to 0"
     )
     sort_by: Literal["active_from", "active_until", None] = None
-    country__in: list[CountryAlpha2] = Field(None, alias="country")
+    country__in: list[CountryAlpha2] | str = Field(None, alias="country")
+
+    @field_validator("country__in", mode="before")
+    def validate_counrty__in(cls, value: Any) -> Any:
+        if isinstance(value, list) and len(value) == 1:
+            value = value[0].split(",")
+
+        return value
 
 
 class PromocodeTargetViewOut(Schema):
