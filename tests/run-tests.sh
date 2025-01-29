@@ -1,5 +1,9 @@
 #!/bin/bash
 
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
 restart_stack() {
     docker compose -f compose.testing.yaml down -v 2>/dev/null
     docker compose -f compose.testing.yaml up -d 2>/dev/null
@@ -45,10 +49,13 @@ tests=(
     reload
     test_14_business_activate_promo.tavern.yml
     test_14_business_get_stat.tavern.yml
-    reload
 )
 
+echo "Setting up environment..."
 docker compose -f compose.testing.yaml up -d --build --force-recreate --remove-orphans 2>/dev/null
+
+succeeded=0
+failed=0
 
 for test in "${tests[@]}"; do
     if [[ "$test" == "reload" ]]; then
@@ -56,7 +63,15 @@ for test in "${tests[@]}"; do
         continue
     fi
 
-    uv run pytest "$test"
+    if uv run pytest "$test"; then
+        ((succeeded++))
+    else
+        ((failed++))
+    fi
 done
 
+echo "Shutting down environment..."
 docker compose -f compose.testing.yaml down -v --remove-orphans 2>/dev/null
+
+echo -e "${GREEN}Tests succeeded: $succeeded${NC}"
+echo -e "${RED}Tests failed: $failed${NC}"
