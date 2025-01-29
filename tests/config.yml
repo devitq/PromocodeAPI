@@ -1,0 +1,3 @@
+variables:
+  BASE_URL: "http://127.0.0.1:12320/api"
+  ANTIFRAUD_URL: "http://127.0.0.1:12321/internal"
