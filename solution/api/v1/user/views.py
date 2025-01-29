@@ -170,9 +170,7 @@ def feed(
         category_lower = filters.category.lower()
 
         def matches_category(promocode: Promocode) -> bool:
-            categories = (
-                promocode.target.categories or []
-            )
+            categories = promocode.target.categories or []
             return any(
                 category.lower() == category_lower for category in categories
             )

@@ -1,9 +1,9 @@
 import datetime
 import uuid
-from typing import ClassVar, Literal
+from typing import Any, ClassVar, Literal
 
 from ninja import ModelSchema, Schema
-from pydantic import Field, StrictInt
+from pydantic import Field, StrictInt, field_validator
 from pydantic_extra_types.country import CountryAlpha2
 
 from apps.business.models import Business
@@ -64,6 +64,16 @@ class CreatePromocodeIn(ModelSchema):
             Promocode.promo_common.field.name,
         ]
 
+    @field_validator("target", mode="before")
+    def validate_target(cls, value: Any) -> Any:
+        if not isinstance(value, dict) and not isinstance(
+            value,
+            PromocodeTarget,
+        ):
+            err = "The 'target' field must be a valid object."
+            raise ValueError(err)
+        return value
+
 
 class CreatePromocodeOut(Schema):
     id: uuid.UUID
@@ -112,6 +122,17 @@ class PatchPromocodeIn(Schema):
     max_count: StrictInt | None = None
     active_from: datetime.date | None = None
     active_until: datetime.date | None = None
+
+    @staticmethod
+    @field_validator("target", mode="before")
+    def validate_target(value: Any) -> Any:
+        if not isinstance(value, dict) and not isinstance(
+            value,
+            PromocodeTarget,
+        ):
+            err = "The 'target' field must be a valid object."
+            raise TypeError(err)
+        return value
 
 
 class PromocodeStatsForCountry(Schema):

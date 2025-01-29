@@ -12,9 +12,7 @@ def map_promocode_to_schema(promocode: Promocode) -> schemas.PromocodeViewOut:
         target=schemas.PromocodeTargetViewOut(
             age_from=promocode.target.age_from,
             age_until=promocode.target.age_until,
-            country=promocode.target.country_raw
-            if promocode.target.country_raw
-            else None,
+            country=promocode.target.country_raw or None,
             categories=promocode.target.categories,
         ),
         max_count=promocode.max_count,
