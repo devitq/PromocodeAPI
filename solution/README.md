@@ -24,7 +24,7 @@ git clone https://github.com/Central-University-IT/test-2025-python-devitq
 cd test-2025-python-devitq/solution
 ```
 
-#### Customize enviroment
+#### Customize environment
 
 ```bash
 cp .env.template .env
@@ -34,13 +34,13 @@ And setup env vars according to your needs.
 
 #### Install dependencies
 
-##### For dev enviroment
+##### For dev environment
 
 ```bash
 uv sync --all-extras
 ```
 
-##### For prod enviroment
+##### For prod environment
 
 ```bash
 uv sync --no-dev
@@ -96,9 +96,9 @@ cd test-2025-python-devitq/solution
 docker build -t prod-2-devitq .
 ```
 
-### Customize enviroment
+### Customize environment
 
-Customize enviroment with `docker run` command (or bind .env file to container), for all enviroment vars and default values see [.env.template](./.env.template).
+Customize environment with `docker run` command (or bind .env file to container), for all environment vars and default values see [.env.template](./.env.template).
 
 ### Run docker image
 
