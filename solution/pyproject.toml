@@ -28,7 +28,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "django-debug-toolbar>=4.4.6",
-    "ruff>=0.9.1",
+    "ruff>=0.9.3",
 ]
 
 [tool.ruff]
@@ -106,13 +106,13 @@ external = []
 fixable = ["ALL"]
 ignore = [
     "ARG",
-    "COM812",
     "D",
-    "N813",
-    "DJ001",
     "ANN401",
+    "COM812",
+    "DJ001",
     "FBT001",
     "FBT002",
+    "N813",
 ]
 logger-objects = []
 per-file-ignores = {}
